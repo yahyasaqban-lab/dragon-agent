@@ -391,13 +391,17 @@ RULES:
 1. Always explain your plan first
 2. Use tools one at a time — I'll return the result
 3. Watch tool outputs and adjust your approach
-4. When finished, summarize what you did and show the result
+4. When finished, say "DONE" and summarize what you did
 5. If something fails, try a different approach
+6. **Do NOT repeat the same tool call more than twice.** If you already got the data, stop.
 
 FORMAT your tool calls exactly like this:
 TOOL: search("how to build a trading bot")
 
-Then wait for my response with the result before the next step."""
+Then wait for my response with the result before the next step.
+
+When you're done with the task, output:
+DONE: (summary of what was accomplished)"""
     
     def run(self, task):
         """Execute a task from start to finish."""
