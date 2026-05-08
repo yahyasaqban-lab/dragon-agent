@@ -353,6 +353,15 @@ class DragonAgent:
                 sys.exit(1)
             self.client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
             self.model = model or "mistralai/mistral-small-3.1-24b-instruct:free"
+        elif provider == "ollama":
+            try:
+                self.client = OpenAI(api_key="ollama", base_url="http://localhost:11434/v1")
+                self.client.models.list()  # verify it works
+                self.model = model or "llama3"
+                print(f"  🦙 Using local Ollama: {self.model}")
+            except Exception as e:
+                print(f"❌ Ollama not running: {e}")
+                sys.exit(1)
         else:
             api_key = os.environ.get("OPENAI_API_KEY")
             if not api_key:
