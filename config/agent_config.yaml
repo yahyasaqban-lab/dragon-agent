@@ -1,0 +1,54 @@
+# Dragon Agent — Manus-like General AI Agent
+# Cross-platform: Windows + Linux
+
+agent:
+  name: "Dragon Agent"
+  version: "1.0.0"
+  description: "General-purpose AI agent that browses, codes, analyzes, and executes tasks"
+
+model:
+  # Primary model (switch between cloud and local)
+  provider: "openai"           # openai, openrouter, local, custom
+  model: "gpt-4o"              # or openrouter/auto, deepseek-chat, local model name
+  temperature: 0.7
+  max_tokens: 4096
+
+  # Fallback if primary fails
+  fallback:
+    provider: "openrouter"
+    model: "openrouter/auto"
+  
+  # Local model (when running fully offline)
+  local:
+    provider: "ollama"
+    model: "llama3"
+    endpoint: "http://localhost:11434"
+
+tools:
+  enabled: ["browser", "terminal", "filesystem", "search", "code", "docker"]
+  
+  browser:
+    engine: "playwright"       # playwright, puppeteer, selenium
+    headless: true
+  
+  terminal:
+    sandbox: false             # true = Docker sandbox, false = host
+    timeout_seconds: 300
+  
+  search:
+    provider: "brave"          # brave, google, duckduckgo
+    max_results: 10
+  
+  code:
+    language: ["python", "javascript", "typescript", "bash", "solidity"]
+
+execution:
+  max_iterations: 50           # max steps before returning
+  timeout_minutes: 30
+  retry_on_error: true
+  max_retries: 3
+
+sandbox:
+  enabled: false               # true = run everything in Docker
+  docker_image: "python:3.11-slim"
+  memory_limit: "2g"
