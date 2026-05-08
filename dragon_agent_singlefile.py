@@ -44,7 +44,7 @@ for pkg in ["openai", "pyyaml", "requests"]:
         __import__(pkg.replace("-", "_"))
     except ImportError:
         print(f"📦 Installing {pkg}...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", pkg, "-q"])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", pkg, "-q", "--break-system-packages"])
 
 # Now safe to import
 import yaml
