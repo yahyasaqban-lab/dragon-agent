@@ -8,8 +8,8 @@ agent:
 
 model:
   # Primary model (switch between cloud and local)
-  provider: "openrouter"        # openai, openrouter, deepseek, local
-  model: "deepseek/deepseek-chat"  # cheapest via OpenRouter
+  provider: "deepseek"          # openai, openrouter, deepseek, local
+  model: "deepseek-chat"        # cheapest model available
   temperature: 0.7
   max_tokens: 4096
 

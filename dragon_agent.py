@@ -55,8 +55,8 @@ agent:
   version: "1.0.0"
 
 model:
-  provider: "openrouter"
-  model: "deepseek/deepseek-chat"
+  provider: "deepseek"
+  model: "deepseek-chat"
   temperature: 0.7
   max_tokens: 4096
 
@@ -81,39 +81,45 @@ def load_config(path=None):
 
 class WebSearch:
     def search(self, query, max_results=5):
-        """Search the web via Brave or DuckDuckGo."""
+        """Search the web via scraping or API."""
         try:
-            # Try DuckDuckGo (free, no API key)
-            params = {"q": query, "format": "json", "max_results": max_results}
-            r = requests.get("https://api.duckduckgo.com/", params=params, timeout=10)
-            if r.status_code == 200:
-                data = r.json()
-                results = []
-                if "Results" in data:
-                    for item in data["Results"][:max_results]:
-                        results.append({
-                            "title": item.get("Text", "").split(" - ")[0],
-                            "snippet": item.get("Text", ""),
-                            "url": item.get("FirstURL", "")
-                        })
-                if results:
-                    return results
-        except:
-            pass
-        
-        # Fallback: use a search API
-        try:
+            # Scrape DuckDuckGo HTML results directly
             r = requests.get(
-                f"https://lite.duckduckgo.com/lite/?q={query}",
-                headers={"User-Agent": "Mozilla/5.0"},
-                timeout=10
+                f"https://html.duckduckgo.com/html/?q={requests.utils.quote(query)}",
+                headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"},
+                timeout=15
             )
             if r.status_code == 200:
-                return [{"title": "DuckDuckGo results", "snippet": r.text[:500], "url": ""}]
+                # Extract result links and snippets
+                import re
+                results = []
+                # Find result blocks: <a rel="nofollow" class="result__a" href="...">TITLE</a>
+                # and <a class="result__snippet" ...>SNIPPET</a>
+                links = re.findall(r'class="result__a"[^>]*href="([^"]+)"[^>]*>([^<]+)</a>', r.text)
+                snippets = re.findall(r'class="result__snippet"[^>]*>([^<]+)</a>', r.text)
+                
+                for i, (url, title) in enumerate(links[:max_results]):
+                    snippet = snippets[i] if i < len(snippets) else ""
+                    # Clean HTML entities
+                    title = re.sub(r'<[^>]+>', '', title).strip()
+                    snippet = re.sub(r'<[^>]+>', '', snippet).strip()
+                    results.append({
+                        "title": title,
+                        "snippet": snippet[:300],
+                        "url": url
+                    })
+                
+                if results:
+                    return results
+                
+                # Fallback: just return raw text
+                text = re.sub(r'<[^>]+>', ' ', r.text)
+                text = re.sub(r'\s+', ' ', text)[:1000]
+                return [{"title": "Search results", "snippet": text, "url": ""}]
         except:
             pass
         
-        return [{"title": f"Search: {query}", "snippet": "Use a browser or API key for better results", "url": ""}]
+        return [{"title": f"Search: {query}", "snippet": "", "url": ""}]
 
 
 # =====================================================================
@@ -198,8 +204,11 @@ class Terminal:
 
 class FileSystem:
     def __init__(self):
-        self.workspace = Path.cwd() / "workspace"
+        # Use a named output dir so user can find files
+        out_dir = os.environ.get("DRAGON_OUTPUT", str(Path.home() / "dragon-output"))
+        self.workspace = Path(out_dir)
         self.workspace.mkdir(exist_ok=True)
+        print(f"💾 Files saved to: {self.workspace}")
     
     def read(self, path):
         """Read file contents."""
@@ -308,23 +317,25 @@ class DragonAgent:
         provider = model_cfg.get("provider", "openai")
         model = model_cfg.get("model", "gpt-4o")
         
-        api_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY")
-        if not api_key:
-            print("❌ Set OPENROUTER_API_KEY or OPENAI_API_KEY")
-            sys.exit(1)
-        
-        if provider == "openrouter" or not provider:
-            self.client = OpenAI(
-                api_key=api_key,
-                base_url="https://openrouter.ai/api/v1"
-            )
-            # Use DeepSeek V4 Flash via OpenRouter — cheapest
-            self.model = model or "deepseek/deepseek-chat"
-        elif provider == "deepseek":
-            api_key = os.environ.get("DEEPSEEK_API_KEY", api_key)
+        if provider == "deepseek":
+            api_key = os.environ.get("DEEPSEEK_API_KEY")
+            if not api_key:
+                print("❌ Set DEEPSEEK_API_KEY for deepseek provider")
+                sys.exit(1)
             self.client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com/v1")
             self.model = model or "deepseek-chat"
+        elif provider == "openrouter" or not provider:
+            api_key = os.environ.get("OPENROUTER_API_KEY")
+            if not api_key:
+                print("❌ Set OPENROUTER_API_KEY")
+                sys.exit(1)
+            self.client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+            self.model = model or "mistralai/mistral-small-3.1-24b-instruct:free"
         else:
+            api_key = os.environ.get("OPENAI_API_KEY")
+            if not api_key:
+                print("❌ Set OPENAI_API_KEY")
+                sys.exit(1)
             self.client = OpenAI(api_key=api_key)
             self.model = model or "gpt-4o"
     
