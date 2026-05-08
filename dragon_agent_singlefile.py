@@ -271,9 +271,9 @@ def run_agent(task, config=None):
         print("❌ No API key found. Set OPENAI_API_KEY or OPENROUTER_API_KEY")
         return
     
-    # Try OpenRouter first (works with many models)
+    # Use DeepSeek V4 Flash via OpenRouter (cheapest working model)
     client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
-    model = config.get("model", os.environ.get("AGENT_MODEL", "openrouter/auto"))
+    model = config.get("model", os.environ.get("AGENT_MODEL", "deepseek/deepseek-chat"))
     provider = config.get("provider", os.environ.get("AGENT_PROVIDER", "openrouter"))
     
     if provider == "deepseek":

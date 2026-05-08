@@ -55,8 +55,8 @@ agent:
   version: "1.0.0"
 
 model:
-  provider: "openai"
-  model: "gpt-4o"
+  provider: "openrouter"
+  model: "deepseek/deepseek-chat"
   temperature: 0.7
   max_tokens: 4096
 
@@ -308,32 +308,25 @@ class DragonAgent:
         provider = model_cfg.get("provider", "openai")
         model = model_cfg.get("model", "gpt-4o")
         
-        if provider == "openai":
-            api_key = os.environ.get("OPENAI_API_KEY")
-            if not api_key:
-                print("⚠️  No OPENAI_API_KEY set. Using openrouter fallback.")
-                provider = "openrouter"
+        api_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            print("❌ Set OPENROUTER_API_KEY or OPENAI_API_KEY")
+            sys.exit(1)
         
-        if provider == "openrouter":
-            api_key = os.environ.get("OPENROUTER_API_KEY", os.environ.get("OPENAI_API_KEY"))
-            if not api_key:
-                print("❌ No API key found. Set OPENAI_API_KEY or OPENROUTER_API_KEY")
-                sys.exit(1)
+        if provider == "openrouter" or not provider:
             self.client = OpenAI(
                 api_key=api_key,
                 base_url="https://openrouter.ai/api/v1"
             )
-            self.model = "openrouter/auto"
+            # Use DeepSeek V4 Flash via OpenRouter — cheapest
+            self.model = model or "deepseek/deepseek-chat"
         elif provider == "deepseek":
-            api_key = os.environ.get("DEEPSEEK_API_KEY")
-            if not api_key:
-                print("❌ Set DEEPSEEK_API_KEY")
-                sys.exit(1)
+            api_key = os.environ.get("DEEPSEEK_API_KEY", api_key)
             self.client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com/v1")
-            self.model = "deepseek-chat"
+            self.model = model or "deepseek-chat"
         else:
             self.client = OpenAI(api_key=api_key)
-            self.model = model
+            self.model = model or "gpt-4o"
     
     def _tool_descriptions(self):
         """Tool definitions for the model."""
